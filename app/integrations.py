@@ -29,7 +29,6 @@ def push_order_status(order_id: int, status: str) -> int:
     response = requests.post(
         "https://api.partner.example.com/v1/orders/status",
         json={"order_id": order_id, "status": status},
-        verify=False,  # noqa: S501
         timeout=TIMEOUT,
     )
     return response.status_code

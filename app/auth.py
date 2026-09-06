@@ -15,19 +15,28 @@ from app.config import JWT_SIGNING_KEY
 from app.db import get_connection
 
 log = logging.getLogger("orders.auth")
+_PASSWORD_HASH_SALT = b"orders-lab-password-salt"
+_PASSWORD_HASH_ITERATIONS = 480_000
 
 
 # --- VULN 5: weak hash for password storage (CWE-916) ----------------------
 # CodeQL: py/weak-sensitive-data-hashing
 # MD5 is fast and unsalted here — a leaked table is cracked offline in minutes.
 def hash_password(password: str) -> str:
-    return hashlib.md5(password.encode()).hexdigest()  # noqa: S324
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode(),
+        _PASSWORD_HASH_SALT,
+        _PASSWORD_HASH_ITERATIONS,
+    )
+    return digest.hex()
 
 
 # --- VULN 6: sensitive data written to logs (CWE-532) ---------------------
 # CodeQL: py/clear-text-logging-sensitive-data
 def authenticate(username: str, password: str) -> dict | None:
-    log.info("login attempt user=%s password=%s", username, password)
+    safe_username = username.replace("\r", "\\r").replace("\n", "\\n")
+    log.info("login attempt user=%s", safe_username)
 
     with get_connection() as conn:
         row = conn.execute(
