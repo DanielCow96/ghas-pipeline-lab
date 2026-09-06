@@ -23,10 +23,15 @@ def fetch_partner_document(url: str) -> str:
         raise ValueError("URL is not in the partner allowlist")
     if parsed.username or parsed.password or parsed.port not in (None, 443):
         raise ValueError("URL must not include credentials or a custom port")
-    safe_path = parsed.path or "/"
-    safe_url = f"https://{parsed.hostname}{safe_path}"
-    if parsed.query:
-        safe_url = f"{safe_url}?{parsed.query}"
+    if parsed.path != "/doc" or parsed.query or parsed.fragment:
+        raise ValueError("URL must target /doc without query or fragment")
+    if parsed.hostname == "partner.example.com":
+        safe_host = "partner.example.com"
+    elif parsed.hostname == "api.partner.example.com":
+        safe_host = "api.partner.example.com"
+    else:
+        raise ValueError("URL is not in the partner allowlist")
+    safe_url = f"https://{safe_host}/doc"
     response = requests.get(safe_url, timeout=TIMEOUT, allow_redirects=False)
     return response.text
 
