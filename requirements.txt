@@ -6,14 +6,14 @@
 # security tooling lights up. The comment on each line is the advisory you
 # should expect to see in the Security tab.
 
-fastapi==0.110.0
-starlette==0.36.3        # GHSA-93gm-qmq6-w238 — DoS via multipart form parsing (high)
-python-multipart==0.0.6  # GHSA-2jv5-9r88-3w3p / CVE-2024-24762 — ReDoS (high)
-requests==2.25.1         # GHSA-j8r2-6x86-q33q / CVE-2023-32681 — Proxy-Authorization leak on redirect
-urllib3==1.26.4          # CVE-2021-33503 — ReDoS in URL parsing (high)
-jinja2==3.1.2            # GHSA-h75v-3vvj-5mfj / CVE-2024-22195 — XSS via xmlattr filter
-cryptography==41.0.0     # multiple advisories, incl. NULL deref in PKCS#7 / X.509 handling
-pyyaml==6.0.1
-lxml==4.9.3
-uvicorn==0.27.1
-setuptools==67.0.0       # GHSA-cx63-2mw6-8hw5 / CVE-2024-6345 — RCE via download functions
+fastapi==0.141.1
+starlette==0.52.1        # GHSA-93gm-qmq6-w238 — DoS via multipart form parsing (high)
+python-multipart==0.0.32  # GHSA-2jv5-9r88-3w3p / CVE-2024-24762 — ReDoS (high)
+requests==2.34.2         # GHSA-j8r2-6x86-q33q / CVE-2023-32681 — Proxy-Authorization leak on redirect
+urllib3==1.26.20          # CVE-2021-33503 — ReDoS in URL parsing (high)
+jinja2==3.1.6            # GHSA-h75v-3vvj-5mfj / CVE-2024-22195 — XSS via xmlattr filter
+cryptography==41.0.7     # multiple advisories, incl. NULL deref in PKCS#7 / X.509 handling
+pyyaml==6.0.3
+lxml==4.9.4
+uvicorn==0.52.4
+setuptools==67.8.0       # GHSA-cx63-2mw6-8hw5 / CVE-2024-6345 — RCE via download functions
