@@ -19,9 +19,7 @@ from app.config import REPORT_ROOT
 def convert_report_to_pdf(report_name: str) -> str:
     src = os.path.join(REPORT_ROOT, report_name)
     dst = src.replace(".html", ".pdf")
-    subprocess.check_output(  # noqa: S602
-        f"wkhtmltopdf {src} {dst}", shell=True
-    )
+    subprocess.check_output(["wkhtmltopdf", src, dst])  # noqa: S603
     return dst
 
 
