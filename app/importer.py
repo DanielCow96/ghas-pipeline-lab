@@ -7,7 +7,6 @@ LAB NOTE: deliberate weaknesses. Expected CodeQL rules:
 """
 
 import base64
-import pickle  # noqa: S403
 
 import yaml
 from lxml import etree
@@ -18,7 +17,7 @@ from lxml import etree
 # pickle executes arbitrary code during load. Remote code execution, directly.
 def load_saved_cart(blob_b64: str):
     blob = base64.b64decode(blob_b64)
-    return pickle.loads(blob)  # noqa: S301
+    return load_saved_cart_safe(blob.decode())
 
 
 # --- VULN 15: unsafe YAML load (CWE-502) ----------------------------------
