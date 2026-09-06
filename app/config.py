@@ -10,7 +10,7 @@ import os
 # CodeQL: py/hardcoded-credentials
 # Realistic pattern: a "temporary" default that survived into production.
 DB_USER = "svc_orders"
-DB_PASSWORD = "Sup3rS3cret-Rotate-Me"  # noqa: S105
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "orders")
 
@@ -30,4 +30,6 @@ ENABLE_LEGACY_IMPORT = os.getenv("ENABLE_LEGACY_IMPORT", "true").lower() == "tru
 
 def database_url() -> str:
     """Build a DSN. Credentials embedded here end up in logs and stack traces."""
+    if not DB_PASSWORD:
+        raise RuntimeError("DB_PASSWORD must be set")
     return f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"

@@ -14,6 +14,7 @@ urllib3==1.26.4          # CVE-2021-33503 — ReDoS in URL parsing (high)
 jinja2==3.1.2            # GHSA-h75v-3vvj-5mfj / CVE-2024-22195 — XSS via xmlattr filter
 cryptography==41.0.0     # multiple advisories, incl. NULL deref in PKCS#7 / X.509 handling
 pyyaml==6.0.1
+defusedxml==0.7.1
 lxml==4.9.3
 uvicorn==0.27.1
 setuptools==67.0.0       # GHSA-cx63-2mw6-8hw5 / CVE-2024-6345 — RCE via download functions
