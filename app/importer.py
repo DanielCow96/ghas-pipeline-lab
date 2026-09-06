@@ -7,10 +7,10 @@ LAB NOTE: deliberate weaknesses. Expected CodeQL rules:
 """
 
 import base64
-import pickle  # noqa: S403
+import json
 
 import yaml
-from lxml import etree
+from defusedxml import ElementTree as etree
 
 
 # --- VULN 14: unsafe deserialization (CWE-502) ----------------------------
@@ -18,7 +18,10 @@ from lxml import etree
 # pickle executes arbitrary code during load. Remote code execution, directly.
 def load_saved_cart(blob_b64: str):
     blob = base64.b64decode(blob_b64)
-    return pickle.loads(blob)  # noqa: S301
+    data = json.loads(blob.decode("utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("cart must be an object")
+    return data
 
 
 # --- VULN 15: unsafe YAML load (CWE-502) ----------------------------------
@@ -31,12 +34,10 @@ def load_import_profile(document: str):
 # CodeQL: py/xxe
 # resolve_entities defaults to True; this parser also loads remote DTDs.
 def parse_partner_feed(xml_text: str):
-    parser = etree.XMLParser(resolve_entities=True, load_dtd=True, no_network=False)
-    return etree.fromstring(xml_text.encode(), parser)
+    return etree.fromstring(xml_text)
 
 
 # --- REFERENCE FIXES ------------------------------------------------------
-import json  # noqa: E402
 
 
 def load_saved_cart_safe(blob_json: str) -> dict:
@@ -53,10 +54,4 @@ def load_import_profile_safe(document: str):
 
 
 def parse_partner_feed_safe(xml_text: str):
-    parser = etree.XMLParser(
-        resolve_entities=False,
-        load_dtd=False,
-        no_network=True,
-        huge_tree=False,
-    )
-    return etree.fromstring(xml_text.encode(), parser)
+    return etree.fromstring(xml_text)

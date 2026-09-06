@@ -7,10 +7,18 @@ LAB NOTE: deliberate weaknesses. Expected CodeQL rules:
 """
 
 import os
+import shutil
 import subprocess  # noqa: S404
 import tempfile
 
 from app.config import REPORT_ROOT
+
+
+def _wkhtmltopdf_path() -> str:
+    path = shutil.which("wkhtmltopdf")
+    if path is None:
+        raise FileNotFoundError("wkhtmltopdf executable not found")
+    return path
 
 
 # --- VULN 8: OS command injection (CWE-78) --------------------------------
@@ -19,7 +27,7 @@ from app.config import REPORT_ROOT
 def convert_report_to_pdf(report_name: str) -> str:
     src = os.path.join(REPORT_ROOT, report_name)
     dst = src.replace(".html", ".pdf")
-    subprocess.check_output(["wkhtmltopdf", src, dst])  # noqa: S603
+    subprocess.check_output([_wkhtmltopdf_path(), src, dst])  # noqa: S603
     return dst
 
 
@@ -46,7 +54,7 @@ def convert_report_to_pdf_safe(report_name: str) -> str:
     src = _resolve_inside_report_root(report_name)
     dst = src.rsplit(".", 1)[0] + ".pdf"
     # No shell, argument list, validated path.
-    subprocess.check_output(["wkhtmltopdf", src, dst])  # noqa: S603
+    subprocess.check_output([_wkhtmltopdf_path(), src, dst])  # noqa: S603
     return dst
 
 
