@@ -31,7 +31,7 @@ def load_import_profile(document: str):
 # CodeQL: py/xxe
 # resolve_entities defaults to True; this parser also loads remote DTDs.
 def parse_partner_feed(xml_text: str):
-    parser = etree.XMLParser(resolve_entities=True, load_dtd=True, no_network=False)
+    parser = etree.XMLParser(resolve_entities=False, load_dtd=False, no_network=True)
     return etree.fromstring(xml_text.encode(), parser)
 
 
