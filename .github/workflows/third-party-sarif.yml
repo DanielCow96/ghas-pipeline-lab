@@ -1,0 +1,68 @@
+name: "Third-party SAST → SARIF"
+
+# WHAT THIS IS
+# The pattern that makes GHAS a platform rather than one more scanner: any
+# tool that emits SARIF can publish into the same Security tab, with the same
+# triage workflow, the same dismissal audit trail and the same API.
+#
+# WHY YOU CARE DURING A VERACODE MIGRATION
+# You will not replace every Veracode capability with CodeQL on day one, and
+# you may keep specialist tools (IaC, containers, mobile, licence scanning).
+# Rather than run a second console, wrap them like this. Each tool gets its
+# own `category` so re-runs replace their own results instead of each other's.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bandit:
+    name: Bandit (Python security linter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install "bandit[sarif]==1.7.8"
+
+      # continue-on-error so a finding does not fail the job before the SARIF
+      # is uploaded. The gate belongs in security-policy-gate.yml, not here —
+      # keep "collect results" and "enforce policy" as separate steps.
+      - name: Run Bandit
+        run: bandit -r app -f sarif -o bandit.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+
+  pip-audit:
+    name: pip-audit (dependency CVEs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pip-audit==2.7.2
+      # Cross-check against Dependabot. Two sources disagreeing is a finding
+      # in itself — usually a manifest the dependency graph is not parsing.
+      - name: Audit
+        run: pip-audit -r requirements.txt --desc || true

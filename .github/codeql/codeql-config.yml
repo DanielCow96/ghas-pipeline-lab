@@ -1,0 +1,38 @@
+name: "Orders API CodeQL configuration"
+
+# This file is where a security handler does most of their tuning work.
+# Everything here is version-controlled and reviewable — that is the main
+# operational upgrade over clicking settings in a scanner UI.
+
+# --- Query selection -------------------------------------------------------
+# Suites, in increasing order of noise:
+#   code-scanning     default. High precision. What GitHub runs if you say nothing.
+#   security-extended adds lower-precision queries. More true positives AND more
+#                     false positives. Good for a lab, and for a mature backlog.
+#   security-and-quality  adds maintainability queries. Usually too noisy for a
+#                     security queue — route it to a separate category if used.
+queries:
+  - uses: security-extended
+  # Your own policy rules live alongside the vendor ones:
+  - uses: ./.github/codeql/custom-queries
+
+# --- Scope -----------------------------------------------------------------
+# paths-ignore is the honest lever for noise. Excluding test code is normal.
+# Excluding "the module that keeps generating alerts" is how a programme dies —
+# use alert dismissal with a reason for that, so it stays on the record.
+paths-ignore:
+  - "tests/**"
+  - "**/*_test.py"
+  - "docs/**"
+  - "scripts/**"
+
+# paths (allowlist) is the inverse. Leave it unset unless you have a monorepo
+# where one team owns one subtree:
+# paths:
+#   - app/
+
+# --- Notes for reviewers ---------------------------------------------------
+# 1. Changing this file changes what the whole organisation is scanned for.
+#    It is covered by CODEOWNERS and requires security team review.
+# 2. After loosening anything here, re-run the workflow manually and diff the
+#    alert count before and after (scripts/ghas-alert-report.sh does this).

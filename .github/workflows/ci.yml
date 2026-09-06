@@ -1,0 +1,57 @@
+name: CI
+
+# The ordinary build. It exists so the security workflows have something
+# realistic to sit next to: in a real pipeline your security gates must not be
+# the only thing that can turn a check red.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check app tests
+
+      - name: Test
+        run: pytest -q
+
+  # Software Bill of Materials. Not strictly a GHAS feature, but the question
+  # "what is in this build?" follows every vulnerability conversation, and
+  # auditors ask for it during a tool migration.
+  sbom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Generate CycloneDX SBOM
+        run: |
+          pip install cyclonedx-bom==4.4.3
+          cyclonedx-py requirements requirements.txt -o sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json

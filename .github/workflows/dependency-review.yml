@@ -1,0 +1,44 @@
+name: "Dependency review — SCA gate"
+
+# WHAT THIS IS
+# The blocking half of software composition analysis. Dependabot tells you
+# about vulnerable dependencies already on main; dependency review stops new
+# ones arriving. It diffs the manifests in a pull request and fails the check
+# when the PR *introduces* a package with an advisory at or above your
+# threshold.
+#
+# This is the single highest-value gate to turn on first during a migration:
+# it is cheap, it has almost no false positives, and it stops the backlog
+# growing while you burn down what is already there.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write # so the action can post its summary comment
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          # Start at 'high' during a migration, tighten to 'moderate' once the
+          # backlog is under control. Announce the change before you make it.
+          fail-on-severity: high
+
+          # Licence policy rides along in the same gate. Deny-list the ones
+          # your legal team has already ruled out.
+          deny-licenses: AGPL-3.0, GPL-3.0
+
+          comment-summary-in-pr: on-failure
+
+          # Escape hatch for a package you have formally accepted risk on.
+          # Every entry here should reference a ticket in the comment.
+          # allow-ghsas: GHSA-xxxx-xxxx-xxxx  # ACCEPTED: SEC-1234, review 2026-12-01

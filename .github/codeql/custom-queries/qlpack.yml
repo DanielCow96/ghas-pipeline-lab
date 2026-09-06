@@ -1,0 +1,6 @@
+name: company/python-policy-queries
+version: 0.1.0
+library: false
+warnOnImplicitThis: false
+dependencies:
+  codeql/python-all: "*"

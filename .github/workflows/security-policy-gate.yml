@@ -1,0 +1,53 @@
+name: "Security policy gate"
+
+# WHAT THIS IS
+# The closest GHAS equivalent to a Veracode *policy* — "this build does not
+# ship if it violates the standard" — expressed as code you own.
+#
+# GitHub gives you two enforcement points, and you want both:
+#
+#   1. Merge protection via rulesets  (policy/ruleset-main-protection.json)
+#      Blocks the merge button when code scanning finds new alerts above a
+#      severity. Configured in the UI/API, not in a workflow. This is the
+#      primary control — it cannot be bypassed by editing a YAML file in a PR.
+#
+#   2. This workflow — a required check that queries the alert API and fails
+#      on aggregate conditions rulesets cannot express: total open criticals,
+#      alerts past their remediation SLA, alerts dismissed without a reason.
+#
+# Deliberately readable rather than clever: during a migration you will be
+# asked to explain exactly why a build was blocked, in a meeting, from memory.
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 1 * * *" # daily SLA sweep
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: read
+
+env:
+  # Remediation SLAs, in days, measured from alert creation.
+  SLA_DAYS_CRITICAL: 7
+  SLA_DAYS_HIGH: 30
+  # Fail the build when any open alert of this severity or above exists.
+  BLOCK_AT_SEVERITY: critical
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Evaluate open code scanning alerts against policy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/policy_gate.py
+
+      - name: Publish gate summary
+        if: always()
+        run: cat policy-gate-summary.md >> "$GITHUB_STEP_SUMMARY" || true

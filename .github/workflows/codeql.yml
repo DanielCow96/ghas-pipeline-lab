@@ -1,0 +1,71 @@
+name: "CodeQL — SAST"
+
+# WHAT THIS IS
+# The GHAS equivalent of a Veracode static (policy) scan. It runs on every PR,
+# on every push to main, and on a weekly schedule so that newly published
+# CodeQL queries find old code without anyone touching the repo.
+#
+# WHY THE SCHEDULE MATTERS: a PR-only scan means a vulnerability class
+# discovered next March never gets applied to code merged last year. Veracode
+# customers get this from periodic policy scans; on GHAS you get it from cron.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 02:17 UTC. Off-the-hour on purpose — the top of the hour is the
+    # busiest slot on GitHub's shared runners.
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    permissions:
+      # Least privilege: this is the exact permission set CodeQL needs.
+      security-events: write # upload SARIF to the Security tab
+      packages: read # download CodeQL query packs
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+          # When your real repos add more languages, extend the matrix here.
+          # Compiled languages need build-mode: autobuild or manual:
+          #   - language: java-kotlin
+          #     build-mode: autobuild
+          #   - language: csharp
+          #     build-mode: autobuild
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+          # security-extended adds lower-precision, higher-recall queries.
+          # Start here in a lab; in production begin with the default suite,
+          # burn down the backlog, then step up to security-extended.
+          queries: security-extended
+
+      - name: Autobuild
+        if: matrix.build-mode == 'autobuild'
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

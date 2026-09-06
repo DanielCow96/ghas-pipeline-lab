@@ -1,0 +1,31 @@
+[project]
+name = "orders-api-lab"
+version = "0.4.2"
+description = "Deliberately vulnerable FastAPI service for practising GitHub Advanced Security"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# The lab code trips a lot of linting rules on purpose. Keep ruff focused on
+# real style problems so a red lint check always means "someone broke style",
+# never "the deliberate vulnerability is still there".
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+  "E501",   # long lines in the deliberately-ugly lab code
+  "B008",   # FastAPI dependency-injection idiom
+  "E402",   # reference fixes are imported next to the code they fix
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "B017"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.bandit]
+exclude_dirs = ["tests", "scripts"]

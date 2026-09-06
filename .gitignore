@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+.pytest_cache/
+.ruff_cache/
+
+# CodeQL local runs
+.codeql-db/
+*.sarif
+policy-gate-summary.md
+sbom.json
+
+# Never commit these. Push protection is a backstop, not a substitute.
+.env
+*.pem
+*.key
+credentials.json
+
+# ...except the committed reference baseline
+!docs/reference/codeql-baseline.sarif

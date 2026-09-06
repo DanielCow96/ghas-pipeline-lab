@@ -1,0 +1,50 @@
+# Dependabot configuration.
+#
+# Two distinct things share this name, and mixing them up is the most common
+# early mistake:
+#
+#   Dependabot ALERTS    — "a dependency you already use has an advisory".
+#                          Enabled in repo/org settings, not in this file.
+#   Dependabot UPDATES   — "open a PR that bumps it". Configured here.
+#
+# You can have alerts without updates (a backlog nobody is fixing) and updates
+# without alerts (routine version churn). A working programme needs both, plus
+# grouping, or you drown the dev teams in PRs and they stop reading them.
+
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Asia/Kuala_Lumpur"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    # Grouping is what keeps this survivable. One PR a week for routine bumps,
+    # separate immediate PRs for anything with an advisory.
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
+      routine-updates:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    # Major bumps get their own PR — they need a human to read the changelog.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Actions are dependencies too, and a compromised action runs with your
+  # workflow's token. Keep them pinned and updated.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci-security

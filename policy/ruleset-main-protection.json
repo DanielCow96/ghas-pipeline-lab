@@ -1,0 +1,76 @@
+{
+  "_comment": [
+    "Repository ruleset protecting main. Apply with:",
+    "  gh api -X POST /repos/OWNER/REPO/rulesets --input policy/ruleset-main-protection.json",
+    "or at org level:",
+    "  gh api -X POST /orgs/ORG/rulesets --input policy/ruleset-main-protection.json",
+    "",
+    "Rulesets replaced classic branch protection. Two things make them the",
+    "right tool for a security handler: they can be applied across many repos",
+    "from the org level, and they support 'evaluate' mode so you can measure",
+    "what a rule WOULD have blocked before you turn it on. Never enable a new",
+    "blocking rule cold — run it in evaluate for two weeks first.",
+    "",
+    "The code_scanning rule below is the real merge gate. scripts/policy_gate.py",
+    "handles aggregate conditions rulesets cannot express (SLA breaches, totals)."
+  ],
+  "name": "main-protection",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "pull_request"
+    }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": true,
+        "require_last_push_approval": true,
+        "required_review_thread_resolution": true
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          { "context": "test" },
+          { "context": "Analyze (python)" },
+          { "context": "dependency-review" },
+          { "context": "gate" }
+        ]
+      }
+    },
+    {
+      "type": "code_scanning",
+      "parameters": {
+        "code_scanning_tools": [
+          {
+            "tool": "CodeQL",
+            "security_alerts_threshold": "high_or_higher",
+            "alerts_threshold": "errors"
+          },
+          {
+            "tool": "bandit",
+            "security_alerts_threshold": "high_or_higher",
+            "alerts_threshold": "none"
+          }
+        ]
+      }
+    }
+  ]
+}

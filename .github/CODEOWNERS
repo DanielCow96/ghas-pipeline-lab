@@ -1,0 +1,20 @@
+# CODEOWNERS is an underrated security control. Combined with a ruleset that
+# requires review from code owners, it means the security team is *structurally*
+# in the path of any change to how the organisation is scanned — nobody can
+# quietly relax a gate in a Friday-evening PR.
+#
+# Replace @your-org/security with your real team slug before this does anything.
+
+# Everything, by default, belongs to the application team.
+*                               @your-org/app-team
+
+# Security-critical configuration requires security review.
+/.github/workflows/             @your-org/security @your-org/app-team
+/.github/codeql/                @your-org/security
+/.github/dependabot.yml         @your-org/security
+/policy/                        @your-org/security
+/scripts/policy_gate.py         @your-org/security
+/SECURITY.md                    @your-org/security
+
+# Authentication and crypto code — a second pair of eyes, always.
+/app/auth.py                    @your-org/security @your-org/app-team
