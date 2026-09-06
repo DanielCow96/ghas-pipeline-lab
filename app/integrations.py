@@ -18,7 +18,21 @@ TIMEOUT = 10
 # A user-supplied URL is fetched by the server, which sits inside the VPC and
 # can reach the cloud metadata endpoint and every internal admin panel.
 def fetch_partner_document(url: str) -> str:
-    response = requests.get(url, timeout=TIMEOUT)
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in PARTNER_HOST_ALLOWLIST:
+        raise ValueError("URL is not in the partner allowlist")
+    if parsed.username or parsed.password or parsed.port not in (None, 443):
+        raise ValueError("URL must not include credentials or a custom port")
+    if parsed.path != "/doc" or parsed.query or parsed.fragment:
+        raise ValueError("URL must target /doc without query or fragment")
+    if parsed.hostname == "partner.example.com":
+        safe_host = "partner.example.com"
+    elif parsed.hostname == "api.partner.example.com":
+        safe_host = "api.partner.example.com"
+    else:
+        raise ValueError("URL is not in the partner allowlist")
+    safe_url = f"https://{safe_host}/doc"
+    response = requests.get(safe_url, timeout=TIMEOUT, allow_redirects=False)
     return response.text
 
 
