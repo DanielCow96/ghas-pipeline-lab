@@ -118,6 +118,8 @@ def test_fetch_partner_document_allows_https_allowlisted_host(monkeypatch):
     [
         "http://partner.example.com/doc",
         "https://attacker.example.com/doc",
+        "https://partner.example.com:4443/doc",
+        "https://user@partner.example.com/doc",
     ],
 )
 def test_fetch_partner_document_rejects_non_allowlisted_urls(url):

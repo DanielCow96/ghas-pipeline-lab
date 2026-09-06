@@ -21,7 +21,13 @@ def fetch_partner_document(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in PARTNER_HOST_ALLOWLIST:
         raise ValueError("URL is not in the partner allowlist")
-    response = requests.get(url, timeout=TIMEOUT, allow_redirects=False)
+    if parsed.username or parsed.password or parsed.port not in (None, 443):
+        raise ValueError("URL must not include credentials or a custom port")
+    safe_path = parsed.path or "/"
+    safe_url = f"https://{parsed.hostname}{safe_path}"
+    if parsed.query:
+        safe_url = f"{safe_url}?{parsed.query}"
+    response = requests.get(safe_url, timeout=TIMEOUT, allow_redirects=False)
     return response.text
 
 
