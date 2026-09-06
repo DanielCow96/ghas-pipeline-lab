@@ -11,6 +11,7 @@ import sqlite3
 import pytest
 
 from app import auth, db, importer, reports
+from app import integrations
 
 
 @pytest.fixture(autouse=True)
@@ -87,3 +88,38 @@ def test_schema_exists():
         }
     assert {"orders", "users"} <= tables
     assert isinstance(db.get_connection(), sqlite3.Connection)
+
+
+def test_fetch_partner_document_allows_https_allowlisted_host(monkeypatch):
+    class _Response:
+        text = "ok"
+
+    called = {}
+
+    def _fake_get(url, timeout, allow_redirects):
+        called["url"] = url
+        called["timeout"] = timeout
+        called["allow_redirects"] = allow_redirects
+        return _Response()
+
+    monkeypatch.setattr(integrations.requests, "get", _fake_get)
+
+    body = integrations.fetch_partner_document("https://partner.example.com/doc")
+    assert body == "ok"
+    assert called == {
+        "url": "https://partner.example.com/doc",
+        "timeout": integrations.TIMEOUT,
+        "allow_redirects": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://partner.example.com/doc",
+        "https://attacker.example.com/doc",
+    ],
+)
+def test_fetch_partner_document_rejects_non_allowlisted_urls(url):
+    with pytest.raises(ValueError):
+        integrations.fetch_partner_document(url)

@@ -18,7 +18,10 @@ TIMEOUT = 10
 # A user-supplied URL is fetched by the server, which sits inside the VPC and
 # can reach the cloud metadata endpoint and every internal admin panel.
 def fetch_partner_document(url: str) -> str:
-    response = requests.get(url, timeout=TIMEOUT)
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in PARTNER_HOST_ALLOWLIST:
+        raise ValueError("URL is not in the partner allowlist")
+    response = requests.get(url, timeout=TIMEOUT, allow_redirects=False)
     return response.text
 
 
