@@ -7,19 +7,21 @@ LAB NOTE: deliberate weaknesses. Expected CodeQL rules:
 """
 
 import os
+import shutil
 import subprocess  # noqa: S404
 import tempfile
 
 from app.config import REPORT_ROOT
+WKHTMLTOPDF_BIN = shutil.which("wkhtmltopdf") or "/usr/bin/wkhtmltopdf"
 
 
 # --- VULN 8: OS command injection (CWE-78) --------------------------------
 # CodeQL: py/command-line-injection
 # shell=True plus an interpolated, user-controlled filename.
 def convert_report_to_pdf(report_name: str) -> str:
-    src = os.path.join(REPORT_ROOT, report_name)
-    dst = src.replace(".html", ".pdf")
-    subprocess.check_output(["wkhtmltopdf", src, dst])  # noqa: S603
+    src = _resolve_inside_report_root(report_name)
+    dst = src.rsplit(".", 1)[0] + ".pdf"
+    subprocess.check_output([WKHTMLTOPDF_BIN, src, dst])  # noqa: S603
     return dst
 
 
@@ -27,8 +29,7 @@ def convert_report_to_pdf(report_name: str) -> str:
 # CodeQL: py/path-injection
 # "../../etc/passwd" walks straight out of REPORT_ROOT.
 def read_report(report_name: str) -> str:
-    path = os.path.join(REPORT_ROOT, report_name)
-    with open(path, encoding="utf-8") as fh:
+    with open(_resolve_inside_report_root(report_name), encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -46,7 +47,7 @@ def convert_report_to_pdf_safe(report_name: str) -> str:
     src = _resolve_inside_report_root(report_name)
     dst = src.rsplit(".", 1)[0] + ".pdf"
     # No shell, argument list, validated path.
-    subprocess.check_output(["wkhtmltopdf", src, dst])  # noqa: S603
+    subprocess.check_output([WKHTMLTOPDF_BIN, src, dst])  # noqa: S603
     return dst
 
 

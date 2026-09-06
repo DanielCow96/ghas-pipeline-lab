@@ -44,9 +44,11 @@ def find_orders_by_customer(customer: str) -> list[dict[str, Any]]:
     The customer name is interpolated straight into the statement, so a value
     like  ' OR '1'='1  returns every row in the table.
     """
-    query = f"SELECT id, customer, region, total_cents, status FROM orders WHERE customer = '{customer}'"  # noqa: S608
     with get_connection() as conn:
-        rows = conn.execute(query).fetchall()
+        rows = conn.execute(
+            "SELECT id, customer, region, total_cents, status FROM orders WHERE customer = ?",
+            (customer,),
+        ).fetchall()
     return [dict(r) for r in rows]
 
 
@@ -55,7 +57,12 @@ def find_orders_by_customer(customer: str) -> list[dict[str, Any]]:
 # Sort/filter parameters are the classic blind spot: they cannot be
 # parameterised, so they must be validated against an allowlist instead.
 def list_orders_sorted(sort_column: str, direction: str = "ASC") -> list[dict[str, Any]]:
-    query = f"SELECT * FROM orders ORDER BY {sort_column} {direction}"  # noqa: S608
+    if sort_column not in _ALLOWED_SORT_COLUMNS:
+        raise ValueError(f"unsupported sort column: {sort_column}")
+    direction_upper = direction.upper()
+    if direction_upper not in {"ASC", "DESC"}:
+        raise ValueError("direction must be ASC or DESC")
+    query = _SORT_QUERIES[(sort_column, direction_upper)]
     with get_connection() as conn:
         rows = conn.execute(query).fetchall()
     return [dict(r) for r in rows]
@@ -65,6 +72,18 @@ def list_orders_sorted(sort_column: str, direction: str = "ASC") -> list[dict[st
 # Keep this in the repo. During triage you will be asked "what does the fix
 # look like?" — this is the answer for the interpolation cases above.
 _ALLOWED_SORT_COLUMNS = {"id", "customer", "region", "total_cents", "status"}
+_SORT_QUERIES = {
+    ("id", "ASC"): "SELECT * FROM orders ORDER BY id ASC",
+    ("id", "DESC"): "SELECT * FROM orders ORDER BY id DESC",
+    ("customer", "ASC"): "SELECT * FROM orders ORDER BY customer ASC",
+    ("customer", "DESC"): "SELECT * FROM orders ORDER BY customer DESC",
+    ("region", "ASC"): "SELECT * FROM orders ORDER BY region ASC",
+    ("region", "DESC"): "SELECT * FROM orders ORDER BY region DESC",
+    ("total_cents", "ASC"): "SELECT * FROM orders ORDER BY total_cents ASC",
+    ("total_cents", "DESC"): "SELECT * FROM orders ORDER BY total_cents DESC",
+    ("status", "ASC"): "SELECT * FROM orders ORDER BY status ASC",
+    ("status", "DESC"): "SELECT * FROM orders ORDER BY status DESC",
+}
 
 
 def find_orders_by_customer_safe(customer: str) -> list[dict[str, Any]]:
@@ -77,12 +96,4 @@ def find_orders_by_customer_safe(customer: str) -> list[dict[str, Any]]:
 
 
 def list_orders_sorted_safe(sort_column: str, direction: str = "ASC") -> list[dict[str, Any]]:
-    if sort_column not in _ALLOWED_SORT_COLUMNS:
-        raise ValueError(f"unsupported sort column: {sort_column}")
-    if direction.upper() not in {"ASC", "DESC"}:
-        raise ValueError("direction must be ASC or DESC")
-    with get_connection() as conn:
-        rows = conn.execute(
-            f"SELECT * FROM orders ORDER BY {sort_column} {direction.upper()}"  # noqa: S608
-        ).fetchall()
-    return [dict(r) for r in rows]
+    return list_orders_sorted(sort_column, direction)

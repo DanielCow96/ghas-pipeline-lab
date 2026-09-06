@@ -11,12 +11,16 @@ Expected CodeQL rules in this module:
   py/stack-trace-exposure (CWE-209)
 """
 
+import html
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from app import auth, db, importer, integrations, reports
 
 app = FastAPI(title="Orders API (LAB — intentionally vulnerable)", version="0.4.2")
+log = logging.getLogger("orders.main")
 
 
 @app.on_event("startup")
@@ -34,9 +38,10 @@ def healthz() -> dict[str, str]:
 @app.get("/search", response_class=HTMLResponse)
 def search(customer: str) -> str:
     rows = db.find_orders_by_customer(customer)
+    safe_customer = html.escape(customer, quote=True)
     return f"""
         <html><body>
-          <h1>Results for {customer}</h1>
+          <h1>Results for {safe_customer}</h1>
           <p>{len(rows)} order(s) found.</p>
         </body></html>
     """
@@ -61,12 +66,11 @@ def get_report(name: str):
     # CodeQL: py/stack-trace-exposure
     try:
         return {"content": reports.read_report(name)}
-    except Exception as exc:  # noqa: BLE001
-        import traceback
-
+    except Exception:  # noqa: BLE001
+        log.exception("failed to read report %s", name)
         return JSONResponse(
             status_code=500,
-            content={"error": str(exc), "trace": traceback.format_exc()},
+            content={"error": "internal server error"},
         )
 
 
@@ -97,4 +101,4 @@ if __name__ == "__main__":
     # --- VULN 19: binds every interface (CWE-668) -------------------------
     # CodeQL: py/bind-socket-all-network-interfaces (low severity — a good
     # candidate for a "risk accepted" dismissal during triage practice).
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # noqa: S104
+    uvicorn.run(app, host="127.0.0.1", port=8000)
